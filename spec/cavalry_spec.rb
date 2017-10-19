@@ -52,6 +52,44 @@ RSpec.describe Cavalry do
     end
   end
 
+  class Rabbit
+    attr_reader :id
+    attr_reader :name
+
+    def initialize(id, name)
+      @id = id
+      @name = name
+    end
+
+    def attributes
+      {
+        id: id,
+        name: name
+      }
+    end
+
+    # association mock
+    def carrot
+      nil
+    end
+
+    class << self
+      def all
+        @records ||= [].tap do |records|
+          records << new(1, "usagi")
+        end
+      end
+
+      def reflections
+        {
+          carrot: OpenStruct.new(name: :carrot)
+        }
+      end
+    end
+  end
+
+
+
   class Cow
     attr_reader :id
     attr_reader :name
@@ -126,6 +164,12 @@ RSpec.describe Cavalry do
     end
   end
 
+  class RabbitValidator < Cavalry::Validator
+    validate_for Rabbit
+
+    # do not define validate_each to check force belongs_to
+  end
+
   class CowValidator < Cavalry::Validator
     validate_for Cow
 
@@ -161,7 +205,6 @@ RSpec.describe Cavalry do
       end
     end
   end
-
 
   describe "Cavalry.run" do
     subject { Cavalry.run }
@@ -249,13 +292,22 @@ RSpec.describe Cavalry do
           errors: {
             carrot: ["can't be blank"]
           }
+        },
+        {
+          record: "Rabbit",
+          attributes: {
+            id: 1,
+            name: "usagi"
+          },
+          errors: {
+            carrot: ["can't be blank"]
+          }
         }
       ]
-
     end
 
     it "can receive errors with Horse's association error" do
-      expect(subject).to eq(belongs_to_errors + validation_error)
+      expect(subject).to match_array(belongs_to_errors + validation_error)
     end
   end
 end

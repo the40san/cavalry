@@ -8,10 +8,12 @@ module Cavalry
         @klasses = klasses.map { |k| append_required_module(k) }
         @each_validators = []
         @group_validators = []
+
+        allocate_each_validators
       end
 
       def validate_each(&block)
-        @each_validators += @klasses.map {|k| EachValidator.new(k, &block) }
+        @each_validators.each {|v| v.append(&block) }
       end
 
       def validate_group(&block)
@@ -34,6 +36,10 @@ module Cavalry
           klass.include(ActiveModel::Validations)
         end
         klass
+      end
+
+      def allocate_each_validators
+        @each_validators += @klasses.map {|k| EachValidator.new(k) }
       end
     end
   end
