@@ -3,8 +3,11 @@ module Cavalry
     class EachValidator
       attr_reader :source_class
 
-      def initialize(klass, &block)
+      def initialize(klass)
         @source_class = klass
+      end
+
+      def append(&block)
         @source_class.class_eval(&block)
       end
 
