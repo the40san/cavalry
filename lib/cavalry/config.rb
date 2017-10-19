@@ -6,6 +6,8 @@ module Cavalry
     # Defines validator definition path. files required with **/*.rb
     mattr_accessor :validators_path
 
+    mattr_accessor :force_check_belongs_to_association
+
     def load_models
       load_rb_files(models_path)
     end
