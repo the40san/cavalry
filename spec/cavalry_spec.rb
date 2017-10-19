@@ -1,4 +1,5 @@
 require "spec_helper"
+require "ostruct"
 
 RSpec.describe Cavalry do
   class Horse
@@ -17,6 +18,17 @@ RSpec.describe Cavalry do
       }
     end
 
+    # association mock
+    def owner
+      Object.new
+    end
+
+    # association mock
+    def carrot
+      return if id == 4
+      Object.new
+    end
+
     class << self
       def all
         @records ||= [].tap do |records|
@@ -29,6 +41,13 @@ RSpec.describe Cavalry do
 
       def where(name: "")
         all.select { |r| r.name == name }
+      end
+
+      def reflections
+        {
+          owner: OpenStruct.new(name: :owner),
+          carrot: OpenStruct.new(name: :carrot)
+        }
       end
     end
   end
@@ -157,6 +176,37 @@ RSpec.describe Cavalry do
     end
   end
 
+  let(:validation_error) do
+    [
+      {
+         record: "Cow",
+         attributes: {
+           id: 2,
+           name: "mowmow"
+         },
+         errors: {
+           name: ["should be uppercase."]
+         }
+      },
+      {
+        record: "Cow",
+        attributes: {
+          id: 2,
+          name: "AWESOME"
+        },
+        errors: {
+          name: ["is too long (maximum is 6 characters)"]
+        }
+      },
+      {
+        record: "GroupValidation",
+        errors: {
+          base: ["ids should be unique"]
+        }
+      }
+    ]
+  end
+
   describe "Cavalry.dump" do
     subject do
       Cavalry.run
@@ -164,36 +214,48 @@ RSpec.describe Cavalry do
     end
 
     it "can receive errors by hash" do
-      expect(subject).to eq(
-        [
-          {
-            record: "Cow",
-            attributes: {
-              id: 2,
-              name: "mowmow"
-            },
-            errors: {
-              name: ["should be uppercase."]
-            }
+      expect(subject).to eq(validation_error)
+    end
+  end
+
+  describe "force_check_belongs_to_association" do
+    before do
+      Cavalry.configure do |config|
+        config.force_check_belongs_to_association = true
+      end
+
+      # define mock active record refrections
+      module ActiveRecord
+        module Reflection
+          const_set("BelongsToReflection", Object)
+        end
+      end
+    end
+
+    subject do
+      Cavalry.run
+      Cavalry.dump
+    end
+
+
+    let(:belongs_to_errors) do
+      [
+        {
+          record: "Horse",
+          attributes: {
+            id: 4,
+            name: "july"
           },
-         {
-           record: "Cow",
-           attributes: {
-             id: 2,
-             name: "AWESOME"
-           },
-           errors: {
-             name: ["is too long (maximum is 6 characters)"]
-           }
-         },
-         {
-           record: "GroupValidation",
-           errors: {
-             base: ["ids should be unique"]
-           }
-         }
-        ]
-      )
+          errors: {
+            carrot: ["can't be blank"]
+          }
+        }
+      ]
+
+    end
+
+    it "can receive errors with Horse's association error" do
+      expect(subject).to eq(belongs_to_errors + validation_error)
     end
   end
 end

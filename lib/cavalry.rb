@@ -22,15 +22,14 @@ module Cavalry
       errors.blank?
     end
 
+    def config
+      @config ||= Config.new
+    end
 
     private
 
     def client
       @client ||= Client.new(config)
-    end
-
-    def config
-      @config ||= Config.new
     end
   end
 end
